@@ -64,6 +64,48 @@ cloudApp.get("/", (req, res) => {
   `);
 });
 
+// 🚀 Cumulative Dashboard (Auto-refreshing)
+cloudApp.get("/dashboard", (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Real-Time Data Dashboard</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          h1 { color: #444; }
+          pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+        </style>
+        <script>
+          function refreshData() {
+            fetch('/data')
+              .then(response => response.json())
+              .then(data => {
+                document.getElementById('dataDisplay').innerText = JSON.stringify(data, null, 2);
+              });
+
+            fetch('/latest')
+              .then(response => response.json())
+              .then(latest => {
+                document.getElementById('latestData').innerText = JSON.stringify(latest, null, 2);
+              });
+          }
+
+          setInterval(refreshData, 5000);
+          window.onload = refreshData;
+        </script>
+      </head>
+      <body>
+        <h1>Real-Time Data Dashboard</h1>
+        <h2>Latest Sensor Data</h2>
+        <pre id="latestData">Loading...</pre>
+
+        <h2>Accumulated Data (Last 3 Hours)</h2>
+        <pre id="dataDisplay">Loading...</pre>
+      </body>
+    </html>
+  `);
+});
+
 // Start the Cloud Server
 cloudApp.listen(CLOUD_PORT, () => {
   console.log(`Cloud server running on port ${CLOUD_PORT}`);
