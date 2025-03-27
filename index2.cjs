@@ -57,11 +57,19 @@ cloudApp.get("/dashboard", (req, res) => {
             box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
           }
           #alarm { 
-            color: red; 
-            font-size: 20px; 
+            font-size: 22px; 
             font-weight: bold; 
             display: none; 
-            margin-top: 20px;
+            margin-top: 20px; 
+            color: white;
+            background: red;
+            padding: 10px;
+            border-radius: 5px;
+            animation: flash 1s infinite alternate;
+          }
+          @keyframes flash {
+            0% { background: red; }
+            100% { background: yellow; }
           }
           label { font-weight: bold; margin-right: 10px; }
           select { padding: 5px; font-size: 14px; }
@@ -70,6 +78,7 @@ cloudApp.get("/dashboard", (req, res) => {
         <script>
           let chart;
           let alarmInterval;
+          let alarmAudio = new Audio('https://www.soundjay.com/button/beep-07.wav');
 
           function fetchAndUpdateData(windowHours) {
             fetch('/data?window=' + windowHours)
@@ -118,9 +127,9 @@ cloudApp.get("/dashboard", (req, res) => {
 
               if (temperature > 25 || ambientTemp > 26) {
                 document.getElementById("alarm").style.display = "block";
+                
                 if (!alarmInterval) {
                   alarmInterval = setInterval(() => {
-                    const alarmAudio = new Audio('https://www.soundjay.com/button/beep-07.wav');
                     alarmAudio.play();
                   }, 5000);
                 }
