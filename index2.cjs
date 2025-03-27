@@ -1,5 +1,4 @@
 const express = require("express");
-
 const cloudApp = express();
 const CLOUD_PORT = 4000;
 cloudApp.use(express.json());
@@ -32,7 +31,7 @@ cloudApp.get("/data", (req, res) => {
   res.json(filteredData);
 });
 
-// 🚀 Updated Graph-First Dashboard
+// 🚀 Real-Time Data Dashboard
 cloudApp.get("/dashboard", (req, res) => {
   res.send(`
     <html>
@@ -42,17 +41,51 @@ cloudApp.get("/dashboard", (req, res) => {
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
           h1 { color: #444; }
+          .live-data { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 15px; 
+            margin: 20px 0;
+            font-size: 16px;
+          }
+          .data-box { 
+            padding: 10px 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            background: #f9f9f9; 
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+          }
           label { font-weight: bold; margin-right: 10px; }
           select { padding: 5px; font-size: 14px; }
           canvas { margin-top: 20px; max-width: 100%; height: 400px; }
         </style>
         <script>
           let chart;
-          
-          function fetchAndUpdateGraph(windowHours) {
+
+          function fetchAndUpdateData(windowHours) {
             fetch('/data?window=' + windowHours)
               .then(response => response.json())
-              .then(data => updateGraph(data));
+              .then(data => {
+                updateLiveData(data);
+                updateGraph(data);
+              });
+          }
+
+          function updateLiveData(data) {
+            if (data.length > 0) {
+              const latest = data[data.length - 1];
+
+              document.getElementById("temperature").innerText = latest.temperature + "°C";
+              document.getElementById("humidity").innerText = latest.humidity + "%";
+              document.getElementById("ambientTemp").innerText = latest.ambientTemp + "°C";
+              document.getElementById("fanRPM").innerText = latest.fanRPM + " RPM";
+              document.getElementById("fanLevel").innerText = latest.fanLevel;
+              document.getElementById("fanPWM").innerText = latest.fanPWM;
+              document.getElementById("fanState").innerText = latest.fanState;
+              document.getElementById("humidifierMode").innerText = latest.humidifierMode;
+              document.getElementById("lastUpdated").innerText = new Date(latest.lastUpdated).toLocaleString();
+            }
           }
 
           function updateGraph(data) {
@@ -68,7 +101,7 @@ cloudApp.get("/dashboard", (req, res) => {
 
           function handleWindowChange() {
             const selectedWindow = document.getElementById("timeWindow").value;
-            fetchAndUpdateGraph(selectedWindow);
+            fetchAndUpdateData(selectedWindow);
           }
 
           window.onload = function() {
@@ -103,13 +136,25 @@ cloudApp.get("/dashboard", (req, res) => {
               }
             });
 
-            fetchAndUpdateGraph(3); // Default to 3 hours
-            setInterval(() => fetchAndUpdateGraph(document.getElementById("timeWindow").value), 5000);
+            fetchAndUpdateData(3); // Default to 3 hours
+            setInterval(() => fetchAndUpdateData(document.getElementById("timeWindow").value), 5000);
           }
         </script>
       </head>
       <body>
         <h1>Real-Time Sensor Trends</h1>
+
+        <div class="live-data">
+          <div class="data-box"><strong>Temperature:</strong> <span id="temperature">--</span></div>
+          <div class="data-box"><strong>Humidity:</strong> <span id="humidity">--</span></div>
+          <div class="data-box"><strong>Ambient Temp:</strong> <span id="ambientTemp">--</span></div>
+          <div class="data-box"><strong>Fan RPM:</strong> <span id="fanRPM">--</span></div>
+          <div class="data-box"><strong>Fan Level:</strong> <span id="fanLevel">--</span></div>
+          <div class="data-box"><strong>Fan PWM:</strong> <span id="fanPWM">--</span></div>
+          <div class="data-box"><strong>Fan State:</strong> <span id="fanState">--</span></div>
+          <div class="data-box"><strong>Humidifier Mode:</strong> <span id="humidifierMode">--</span></div>
+          <div class="data-box"><strong>Last Updated:</strong> <span id="lastUpdated">--</span></div>
+        </div>
 
         <label for="timeWindow">Select Time Window:</label>
         <select id="timeWindow" onchange="handleWindowChange()">
@@ -124,6 +169,7 @@ cloudApp.get("/dashboard", (req, res) => {
     </html>
   `);
 });
+
 
 // Start the Cloud Server
 cloudApp.listen(CLOUD_PORT, () => {
