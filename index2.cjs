@@ -56,12 +56,20 @@ cloudApp.get("/dashboard", (req, res) => {
             background: #f9f9f9; 
             box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
           }
+          #alarm { 
+            color: red; 
+            font-size: 20px; 
+            font-weight: bold; 
+            display: none; 
+            margin-top: 20px;
+          }
           label { font-weight: bold; margin-right: 10px; }
           select { padding: 5px; font-size: 14px; }
           canvas { margin-top: 20px; max-width: 100%; height: 400px; }
         </style>
         <script>
           let chart;
+          let alarmInterval;
 
           function fetchAndUpdateData(windowHours) {
             fetch('/data?window=' + windowHours)
@@ -69,6 +77,7 @@ cloudApp.get("/dashboard", (req, res) => {
               .then(data => {
                 updateLiveData(data);
                 updateGraph(data);
+                checkForAlarm(data);
               });
           }
 
@@ -92,11 +101,35 @@ cloudApp.get("/dashboard", (req, res) => {
             const timestamps = data.map(entry => new Date(entry.timestamp).toLocaleTimeString());
             const temperatures = data.map(entry => entry.temperature);
             const humidities = data.map(entry => entry.humidity);
+            const ambientTemps = data.map(entry => entry.ambientTemp);
 
             chart.data.labels = timestamps;
             chart.data.datasets[0].data = temperatures;
             chart.data.datasets[1].data = humidities;
+            chart.data.datasets[2].data = ambientTemps;
             chart.update();
+          }
+
+          function checkForAlarm(data) {
+            if (data.length > 0) {
+              const latest = data[data.length - 1];
+              const temperature = latest.temperature;
+              const ambientTemp = latest.ambientTemp;
+
+              if (temperature > 25 || ambientTemp > 26) {
+                document.getElementById("alarm").style.display = "block";
+                if (!alarmInterval) {
+                  alarmInterval = setInterval(() => {
+                    const alarmAudio = new Audio('https://www.soundjay.com/button/beep-07.wav');
+                    alarmAudio.play();
+                  }, 5000);
+                }
+              } else {
+                document.getElementById("alarm").style.display = "none";
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+              }
+            }
           }
 
           function handleWindowChange() {
@@ -124,6 +157,13 @@ cloudApp.get("/dashboard", (req, res) => {
                     backgroundColor: 'rgba(0, 0, 255, 0.2)',
                     data: [],
                     fill: true
+                  },
+                  {
+                    label: 'Ambient Temperature (°C)',
+                    borderColor: 'green',
+                    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+                    data: [],
+                    fill: true
                   }
                 ]
               },
@@ -136,7 +176,7 @@ cloudApp.get("/dashboard", (req, res) => {
               }
             });
 
-            fetchAndUpdateData(3); // Default to 3 hours
+            fetchAndUpdateData(3);
             setInterval(() => fetchAndUpdateData(document.getElementById("timeWindow").value), 5000);
           }
         </script>
@@ -155,6 +195,8 @@ cloudApp.get("/dashboard", (req, res) => {
           <div class="data-box"><strong>Humidifier Mode:</strong> <span id="humidifierMode">--</span></div>
           <div class="data-box"><strong>Last Updated:</strong> <span id="lastUpdated">--</span></div>
         </div>
+
+        <div id="alarm">⚠️ WARNING: High Temperature Detected!</div>
 
         <label for="timeWindow">Select Time Window:</label>
         <select id="timeWindow" onchange="handleWindowChange()">
